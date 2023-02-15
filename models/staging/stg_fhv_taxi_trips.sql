@@ -1,10 +1,23 @@
-{{ config(materialized="view") }}
+{{ config(
+    materialized="view",
+    partition_by={
+        "field": "pickup_datetime",
+        "data_type": "timestamp",
+        "granularity": "day"
+    }
+) }}
 
 
 with fhv_trips as (
     select 
         *, 
-        row_number() over (partition by pickup_datetime) as row_num
+        row_number() over (
+            partition by
+                PULocationID,
+                DOLocationID,
+                pickup_datetime,
+                dropoff_datetime
+            ) as row_num
     from {{ source("staging", "fhv_taxi_trips") }}
     where 
         pickup_datetime is not null and
@@ -14,7 +27,13 @@ with fhv_trips as (
 )
 select
     -- identifiers
-    {{ dbt_utils.surrogate_key(["PULocationID", "pickup_datetime", "dropoff_datetime"]) }} as tripid,
+    {{ dbt_utils.surrogate_key([
+        "PULocationID", 
+        "DOLocationID", 
+        "pickup_datetime", 
+        "dropoff_datetime"]) 
+    }} as tripid,
+    -- FHV source schema holds locID as ints
     cast(PULocationID as string) as pickup_locationid,
     cast(DOLocationID as string) as dropoff_locationid,
 

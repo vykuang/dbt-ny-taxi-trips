@@ -29,7 +29,12 @@ models:
         technology service providers. 
       columns:
           - name: tripid
-            description: Primary key for this table, generated with a concatenation of vendorid+pickup_datetime
+            description: >
+              Primary key for this table, generated with a concatenation of
+              PULocationID,
+              DOLocationID,
+              pickup_datetime,
+              dropoff_datetime
             tests:
                 - unique:
                     severity: warn
@@ -120,7 +125,12 @@ models:
         technology service providers. 
       columns:
           - name: tripid
-            description: Primary key for this table, generated with a concatenation of vendorid+pickup_datetime
+            description: >
+                Primary key for this table, generated with a concatenation of
+                PULocationID,
+                DOLocationID,
+                pickup_datetime,
+                dropoff_datetime            
             tests:
                 - unique:
                     severity: warn
@@ -208,7 +218,12 @@ models:
         For hire vehicle taxi trip data
       columns:
           - name: tripid
-            description: Primary key consisting of PUlocationID, pickup_datetime, and dropoff_datetime
+            description: >
+              Primary key for this table, generated with a concatenation of
+              PULocationID,
+              DOLocationID,
+              pickup_datetime,
+              dropoff_datetime
             tests:
               - not_null:
                   severity: warn
