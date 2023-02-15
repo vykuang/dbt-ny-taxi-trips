@@ -1,15 +1,37 @@
-{{ config(materialized='view') }}
+{{ config(
+    materialized="view",
+    partition_by={
+        "field": "pickup_datetime",
+        "data_type": "timestamp",
+        "granularity": "day"
+    }
+) }}
 
--- with tripdata as 
--- (
---   select *,
---     row_number() over(partition by vendorid, lpep_pickup_datetime) as row_num
---   from {{ source('staging','green_taxi_trips') }}
---   where vendorid is not null 
--- )
+with indexed_trips as (
+    select 
+        *, 
+        row_number() over (
+            partition by
+                PULocationID,
+                DOLocationID,
+                lpep_pickup_datetime,
+                lpep_dropoff_datetime
+            ) as row_num
+    from {{ source("staging", "green_taxi_trips") }}
+    where 
+        lpep_pickup_datetime is not null and
+        lpep_dropoff_datetime is not null and
+        PULocationID is not null and
+        DOLocationID is not null
+)
 select
     -- identifiers
-    {{ dbt_utils.surrogate_key(['vendorid', 'lpep_pickup_datetime']) }} as tripid,
+    {{ dbt_utils.surrogate_key([
+        "PULocationID", 
+        "DOLocationID", 
+        "lpep_pickup_datetime", 
+        "lpep_dropoff_datetime"]) 
+    }} as tripid,
     cast(vendorid as string) as vendorid,
     cast(ratecodeid as string) as ratecodeid,
     cast(pulocationid as string) as  pickup_locationid,
@@ -37,9 +59,9 @@ select
     cast(payment_type as string) as payment_type,
     {{ get_payment_type_description('payment_type') }} as payment_type_description, 
     cast(congestion_surcharge as numeric) as congestion_surcharge
--- from tripdata
--- where row_num = 1
-from {{ source('staging','green_taxi_trips') }}
+from indexed_trips
+where row_num = 1
+-- from {{ source('staging','green_taxi_trips') }}
 
 -- dbt build --m <model.sql> --var 'is_test_run: false'
 {% if var('is_test_run', default=true) %}

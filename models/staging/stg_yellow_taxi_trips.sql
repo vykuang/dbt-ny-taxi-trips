@@ -7,16 +7,31 @@
     }
 ) }}
  
--- with tripdata as 
--- (
---   select *,
---     row_number() over(partition by vendorid, tpep_pickup_datetime) as rn
---   from {{ source('staging','yellow_taxi_trips') }}
---   where vendorid is not null 
--- )
+with indexed_trips as (
+    select 
+        *, 
+        row_number() over (
+            partition by
+                PULocationID,
+                DOLocationID,
+                tpep_pickup_datetime,
+                tpep_dropoff_datetime
+            ) as row_num
+    from {{ source("staging", "yellow_taxi_trips") }}
+    where 
+        tpep_pickup_datetime is not null and
+        tpep_dropoff_datetime is not null and
+        PULocationID is not null and
+        DOLocationID is not null
+)
 select
    -- identifiers
-    {{ dbt_utils.surrogate_key(['vendorid', 'tpep_pickup_datetime']) }} as tripid,
+    {{ dbt_utils.surrogate_key([
+        "PULocationID", 
+        "DOLocationID", 
+        "tpep_pickup_datetime", 
+        "tpep_dropoff_datetime"]) 
+    }} as tripid,
     cast(vendorid as string) as vendorid,
     cast(ratecodeid as string) as ratecodeid,
     cast(pulocationid as string) as  pickup_locationid,
@@ -46,11 +61,11 @@ select
     cast(payment_type as string) as payment_type,
     {{ get_payment_type_description('payment_type') }} as payment_type_description, 
     cast(congestion_surcharge as numeric) as congestion_surcharge
--- from tripdata
+from indexed_trips
 -- partition must be done in config, at top of .sql, not here
 -- partition by TIMESTAMP_TRUNC(pickup_datetime, DAY)
-from {{ source('staging','yellow_taxi_trips') }}
--- where rn = 1
+-- from {{ source('staging','yellow_taxi_trips') }}
+where row_num = 1
 
 -- dbt build --m <model.sql> --var 'is_test_run: false'
 {% if var('is_test_run', default=true) %}
