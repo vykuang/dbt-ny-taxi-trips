@@ -14,12 +14,11 @@ select
     fhv_taxi_trips.*,
     pickup_zone.borough as pickup_borough,
     pickup_zone.zone as pickup_zone,
-    pickup_zone.service_zone as pickup_service_zone,
     dropoff_zone.borough as dropoff_borough,
     dropoff_zone.zone as dropoff_zone,
-    dropoff_zone.service_zone as dropoff_service_zone,
 from fhv_taxi_trips
-left join dim_zones as pickup_zone
+-- inner join prevents null pickup_locationid that appears in left join
+inner join dim_zones as pickup_zone
 on fhv_taxi_trips.pickup_locationid = cast(pickup_zone.locationid as string)
-left join dim_zones as dropoff_zone
+inner join dim_zones as dropoff_zone
 on fhv_taxi_trips.dropoff_locationid = cast(dropoff_zone.locationid as string)
