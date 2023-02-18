@@ -10,28 +10,13 @@
 with indexed_trips as (
     select 
         *, 
-        row_number() over (
-            partition by
-                PULocationID,
-                DOLocationID,
-                tpep_pickup_datetime,
-                tpep_dropoff_datetime
-            ) as row_num
+        row_number() over (partition by vendorid, tpep_pickup_datetime) as row_num
     from {{ source("staging", "yellow_taxi_trips") }}
-    where 
-        tpep_pickup_datetime is not null and
-        tpep_dropoff_datetime is not null and
-        PULocationID is not null and
-        DOLocationID is not null
+    where vendorid is not null
 )
 select
    -- identifiers
-    {{ dbt_utils.surrogate_key([
-        "PULocationID", 
-        "DOLocationID", 
-        "tpep_pickup_datetime", 
-        "tpep_dropoff_datetime"]) 
-    }} as tripid,
+    {{ dbt_utils.surrogate_key(["vendorid", "tpep_pickup_datetime"]) }} as tripid,
     cast(vendorid as string) as vendorid,
     cast(ratecodeid as string) as ratecodeid,
     cast(pulocationid as string) as  pickup_locationid,

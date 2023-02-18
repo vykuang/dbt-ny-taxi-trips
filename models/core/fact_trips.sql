@@ -1,4 +1,11 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table',
+        partition_by={
+            "field": "pickup_datetime",
+            "data_type": "timestamp",
+            "granularity": "day"
+        }
+    ) 
+}}
 
 with green_taxi_trips as (
     select *, 'green' as service_type
