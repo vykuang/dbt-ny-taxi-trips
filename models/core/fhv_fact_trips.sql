@@ -1,9 +1,14 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table',
+    partition_by={
+        "field": "pickup_datetime",
+        "data_type": "timestamp",
+        "granularity": "day"
+    }
+) }}
 
 with fhv_taxi_trips as (
     select *, 'fhv' as service_type
-    from
-        {{ ref('stg_fhv_taxi_trips') }}
+    from {{ ref('stg_fhv_taxi_trips') }}
 ),
 -- filter the lookup.csv before joining
 dim_zones as (
